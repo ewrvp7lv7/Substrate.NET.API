@@ -122,10 +122,7 @@ namespace Substrate.NetApi.TestNode
 
             /// Payloads longer than 256 bytes are going to be `blake2_256`-hashed.
             if (payload.Length > 256)
-            {
-                Assert.True(false);//not tested
                 payload = HashExtension.Blake2(payload, 256);
-            }
 
             // sign payload with the Sr25519
             var simpleSign = Schnorrkel.Sr25519v091.SignSimple(keyPairAlice, payload);
@@ -194,7 +191,7 @@ namespace Substrate.NetApi.TestNode
 
             //test_meta.opt.wasm originally from
             //https://github.com/gear-tech/gear-js/tree/main/api/programs
-            var codeBytes = System.IO.File.ReadAllBytes("C:\\Users\\Assen\\source\\repos\\gear-js-examples\\wasm32-unknown-unknown\\debug\\test_meta.opt.wasm");
+            var codeBytes = System.IO.File.ReadAllBytes(".\\wasm32-unknown-unknown\\debug\\test_meta.opt.wasm");
             var codeBytesHex = Utils.Bytes2HexString(codeBytes).ToLower().Substring(2);
             var codeLengthCompact = Utils.Bytes2HexString(new CompactInteger(codeBytesHex.Length / 2).Encode()).ToLower().Substring(2);
             codeLengthCompact += codeBytesHex;
@@ -257,7 +254,7 @@ namespace Substrate.NetApi.TestNode
             var methodHex = "6801" +
                 codeLengthCompact +
                 saltHexWL +
-                "10" + initPayloadArrHexWL + //wtf?
+                "10" + initPayloadArrHexWL + //TODO 10?
                 gasLimit +
                 value;
 
