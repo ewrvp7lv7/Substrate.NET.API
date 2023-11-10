@@ -1,16 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Text;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
-using Substrate.NetApi.Model.Types.Base;
-
-using Substrate.NetApi.Model.Extrinsics;
+using Schnorrkel;
 using Schnorrkel.Keys;
-using System;
-using System.Text;
-using Newtonsoft.Json.Linq;
-using NUnit.Framework.Internal;
+using NUnit.Framework;
+using Substrate.NetApi.Model.Rpc;
+using Substrate.NetApi.Model.Types;
+using Substrate.NetApi.Model.Types.Base;
+using Substrate.NetApi.Model.Extrinsics;
+using Substrate.NetApi.Extensions;
+
 
 namespace Substrate.NetApi.TestNode
 {
@@ -345,8 +347,26 @@ namespace Substrate.NetApi.TestNode
             paramsHex = "0x" + lengthCompact + paramsHex;
             Console.WriteLine($"paramsHex:\n{paramsHex.Substring(0, 30)}...");
 
-            var result = await _substrateClient.InvokeAsync<JValue>("author_submitAndWatchExtrinsic", new object[] { paramsHex }, CancellationToken.None);
-            Console.WriteLine($"result:\n{result}");
+            var subscriptionId =
+                await _substrateClient.InvokeAsync<string>("author_submitAndWatchExtrinsic", new object[] { paramsHex }, CancellationToken.None);
+            
+            var taskCompletionSource = new TaskCompletionSource<(bool, Hash)>();
+            _substrateClient.Listener.RegisterCallBackHandler(subscriptionId, (string subscriptionId, ExtrinsicStatus extrinsicUpdate) =>
+            {
+                if (extrinsicUpdate.ExtrinsicState == ExtrinsicState.Finalized ||
+                    extrinsicUpdate.ExtrinsicState == ExtrinsicState.Dropped ||
+                    extrinsicUpdate.ExtrinsicState == ExtrinsicState.Invalid)
+                {
+                    taskCompletionSource.SetResult((true, extrinsicUpdate.Hash));
+                }
+
+
+                Console.WriteLine($"extrinsicUpdate:\n{extrinsicUpdate.ExtrinsicState}");
+            });
+
+
+            var finished = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(TimeSpan.FromMinutes(1)));
+            Assert.AreEqual(taskCompletionSource.Task, finished, "Test timed out waiting for final callback");
 
 
 
