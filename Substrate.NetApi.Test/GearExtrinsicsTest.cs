@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Schnorrkel;
-using Schnorrkel.Keys;
 using NUnit.Framework;
-using Substrate.NetApi.Model.Rpc;
-using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Extrinsics;
+using Substrate.NetApi.Model.Types;
+using Schnorrkel.Keys;
+using Schnorrkel;
 using Substrate.NetApi.Extensions;
+
+using Substrate.NetApi.Model.Rpc;
 
 
 namespace Substrate.NetApi.TestNode
@@ -174,6 +176,21 @@ namespace Substrate.NetApi.TestNode
             var balanceArr = Utils.HexToByteArray(balanceHex);
             var balance = CompactInteger.Decode(balanceArr);
             Console.WriteLine($"balance:\n{balance}");
+
+        }
+
+        [Test]
+        public async Task GetGearProgramStateAsync()
+        {
+
+            var programAddress = "0x1d7b913a1675b58bee9e7efd5aa152245004d6a5e7ed772d3c5749234d834947";
+
+            var argHex = "0x0100000000";//Option<U32> = 0x00
+
+            var state = await _substrateClient.InvokeAsync<JValue>("gear_readState", new object[] { programAddress, argHex, null }, CancellationToken.None);
+
+            var stateHex = (string)state;
+            Console.WriteLine($"state:\n{stateHex}");//0x04000000000000000000000000000000000400205375726e616d6530144e616d6530
 
         }
 
@@ -347,10 +364,35 @@ namespace Substrate.NetApi.TestNode
             paramsHex = "0x" + lengthCompact + paramsHex;
             Console.WriteLine($"paramsHex:\n{paramsHex.Substring(0, 30)}...");
 
+
+
+            //Storage subscription
+            var key0 = "0x26aa394eea5630e07c48ae0c9558cef780d41e5e16056765bc8461851072c9d7";
+            var key1 = "0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d";
+
+            var subscriptionIdStorage =
+                await _substrateClient.InvokeAsync<string>("state_subscribeStorage", new object[] { new object[] { key0, key1 } }, CancellationToken.None);
+
+            _substrateClient.Listener.RegisterCallBackHandler(subscriptionIdStorage, (string subscriptionIdStorage, StorageChangeSet result) =>
+            {
+                var programChanged = "6807" + //index of ProgramChanged method
+                        programId.Substring(2);
+
+                var param = result.Changes.Where(x => x != null && x[1].IndexOf(programChanged) > -1);
+
+                if (param.Any() && Regex.IsMatch(param.First()[1], (programChanged + "[\\da-e]{14}02000000"), RegexOptions.IgnoreCase))
+                    Console.WriteLine("storageUpdate: Program initialized successfully");
+
+            });
+
+
+
+            var taskCompletionSource = new TaskCompletionSource<(bool, Hash)>();
+
+            //Program load and extrinsicUpdate subscription
             var subscriptionId =
                 await _substrateClient.InvokeAsync<string>("author_submitAndWatchExtrinsic", new object[] { paramsHex }, CancellationToken.None);
-            
-            var taskCompletionSource = new TaskCompletionSource<(bool, Hash)>();
+
             _substrateClient.Listener.RegisterCallBackHandler(subscriptionId, (string subscriptionId, ExtrinsicStatus extrinsicUpdate) =>
             {
                 if (extrinsicUpdate.ExtrinsicState == ExtrinsicState.Finalized ||
@@ -367,8 +409,6 @@ namespace Substrate.NetApi.TestNode
 
             var finished = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(TimeSpan.FromMinutes(1)));
             Assert.AreEqual(taskCompletionSource.Task, finished, "Test timed out waiting for final callback");
-
-
 
         }
     }
