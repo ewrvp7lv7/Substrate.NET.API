@@ -69,7 +69,7 @@ namespace Substrate.NetApi.TestNode
             Console.WriteLine($"addressBobHex:\n{addressBobHex}");
 
 
-            //Payload
+            // Payload for signature:
             //method 0x0500008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a489101
             //era 0x7500
             //nonce 0x0c
@@ -152,19 +152,16 @@ namespace Substrate.NetApi.TestNode
 
             var result = await _substrateClient.Author.SubmitExtrinsicAsync(paramsHex, CancellationToken.None);
 
-
-
-
         }
 
         [Test]
         public async Task GetStorageAsync()
         {
-            //TODO function encodeStorageKey
+            // TODO function encodeStorageKey
             var module = "26aa394eea5630e07c48ae0c9558cef7";
             var method = "b99d880ec681799c0cf30e8886371da9";
-            //blake2_128concat(accountid32)
-            //Bob address hex 0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48
+            // blake2_128concat(accountid32)
+            // Bob address hex 0x8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48
             var addressBobHex = "4f9aea1afa791265fae359272badc1cf8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48";
             var storageKey = "0x" + module + method + addressBobHex;
 
@@ -182,7 +179,11 @@ namespace Substrate.NetApi.TestNode
         [Test]
         public async Task GetGearProgramStateAsync()
         {
+            // Gear Protocol demo             
+            // For test_meta.opt.wasm originally from
+            // https://github.com/gear-tech/gear-js/tree/main/api/programs
 
+            // change it!
             var programAddress = "0x1d7b913a1675b58bee9e7efd5aa152245004d6a5e7ed772d3c5749234d834947";
 
             var argHex = "0x0100000000";//Option<U32> = 0x00
@@ -197,6 +198,9 @@ namespace Substrate.NetApi.TestNode
         [Test]
         public async Task LoadGearProgramTxAsync()
         {
+            // Gear Protocol demo             
+            // For test_meta.opt.wasm originally from
+            // https://github.com/gear-tech/gear-js/tree/main/api/programs
 
             var miniSecretAlice = new MiniSecret(Utils.HexToByteArray("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"), ExpandMode.Ed25519);
             //var alice = Account.Build(KeyType.Sr25519, miniSecretAlice.ExpandToSecret().ToBytes(), miniSecretAlice.GetPair().Public.Key);
@@ -206,10 +210,7 @@ namespace Substrate.NetApi.TestNode
             Console.WriteLine($"addressAliceHex:\n{addressAliceHex}");
 
 
-            //gas_limit:
-
-            //test_meta.opt.wasm originally from
-            //https://github.com/gear-tech/gear-js/tree/main/api/programs
+            // Gas_limit:
             var codeBytes = System.IO.File.ReadAllBytes(".\\wasm32-unknown-unknown\\debug\\test_meta.opt.wasm");
             var codeBytesHex = Utils.Bytes2HexString(codeBytes).ToLower().Substring(2);
             var codeLengthCompact = Utils.Bytes2HexString(new CompactInteger(codeBytesHex.Length / 2).Encode()).ToLower().Substring(2);
@@ -217,9 +218,9 @@ namespace Substrate.NetApi.TestNode
             Console.WriteLine($"codeBytes:\n{codeBytesHex.Substring(0, 30)}...");
 
 
-            //There is a lot Rust-similar types as input for smart-contracts.
-            //https://docs.substrate.io/reference/scale-codec/
-            //They describes in meta. Here is 8-bit arr as example.
+            // There is a lot Rust-similar types as input for smart-contracts.
+            // https://docs.substrate.io/reference/scale-codec/
+            // They describes in meta. Here is 8-bit arr as example.
             var initPayloadArr = new byte[] { 1, 2, 3 };
             var initPayloadArrHex = Utils.Bytes2HexString(initPayloadArr).ToLower().Substring(2);
             var initPayloadLengthCompact = Utils.Bytes2HexString(new CompactInteger(initPayloadArrHex.Length / 2).Encode()).ToLower().Substring(2);
@@ -239,7 +240,7 @@ namespace Substrate.NetApi.TestNode
             var gasLimit = minLimitHex + "00000000";
             Console.WriteLine($"gasLimit:\n{gasLimit}");
 
-            //method:
+            // Method:
             //callIndex 0x6801
             //code 
             //salt 0x50b7e40d52c7d14035848f7e20a8642413cca3dbe3
@@ -269,7 +270,6 @@ namespace Substrate.NetApi.TestNode
 
             var value = "0x00000000000000000000000000000000".Substring(2);
 
-
             var methodHex = "6801" +
                 codeLengthCompact +
                 saltHexWL +
@@ -278,7 +278,7 @@ namespace Substrate.NetApi.TestNode
                 value;
 
 
-            //Payload:
+            // Payload for signature:
             //method
             //era 0x7500
             //nonce 0x0c
@@ -334,7 +334,7 @@ namespace Substrate.NetApi.TestNode
 
             var payload = Utils.HexToByteArray(payload_hex);
 
-            /// Payloads longer than 256 bytes are going to be `blake2_256`-hashed.
+            // Payloads longer than 256 bytes are going to be `blake2_256`-hashed.
             if (payload.Length > 256)
                 payload = HashExtension.Blake2(payload, 256);
 
@@ -343,7 +343,7 @@ namespace Substrate.NetApi.TestNode
             var simpleSignHex = "01" + Utils.Bytes2HexString(simpleSign).ToLower().Substring(2);
             Console.WriteLine($"simpleSignHex:\n{simpleSignHex}");
 
-            // extrinsic params:
+            // Extrinsic params:
             //compact length 0x3102
             //version 84
             //signer 0x00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
@@ -387,9 +387,10 @@ namespace Substrate.NetApi.TestNode
 
 
 
+            // Subscribtion and listening
             var taskCompletionSource = new TaskCompletionSource<(bool, Hash)>();
 
-            //Program load and extrinsicUpdate subscription
+            // Program loading and extrinsicUpdate subscription
             var subscriptionId =
                 await _substrateClient.InvokeAsync<string>("author_submitAndWatchExtrinsic", new object[] { paramsHex }, CancellationToken.None);
 
@@ -406,6 +407,185 @@ namespace Substrate.NetApi.TestNode
                 Console.WriteLine($"extrinsicUpdate:\n{extrinsicUpdate.ExtrinsicState}");
             });
 
+            var finished = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(TimeSpan.FromMinutes(1)));
+            Assert.AreEqual(taskCompletionSource.Task, finished, "Test timed out waiting for final callback");
+
+        }
+
+        [Test]
+        public async Task Message2ProgramTxAsync()
+        {
+            // Gear Protocol demo             
+            // For test_meta.opt.wasm originally from
+            // https://github.com/gear-tech/gear-js/tree/main/api/programs
+
+            var miniSecretAlice = new MiniSecret(Utils.HexToByteArray("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"), ExpandMode.Ed25519);
+            var keyPairAlice = miniSecretAlice.GetPair();
+            var addressAlice = Utils.GetAddressFrom(miniSecretAlice.GetPair().Public.Key);
+            var addressAliceHex = "00" + Utils.Bytes2HexString(Base58Local.Decode(addressAlice)).ToLower().Substring(4, 64);
+            Console.WriteLine($"addressAliceHex:\n{addressAliceHex}");
+            
+            
+            // Change it!
+            var programId = "0x208d2436d58640c86dea97ca5a0f8489649d2b8f6f52873b43df07ab2e82ef9f".Substring(2);
+
+            var value = 10_000_000_000_000;
+            var valueBI = new System.Numerics.BigInteger(value);
+            var valueHex = Utils.Bytes2HexString(new CompactInteger(valueBI).Encode()).ToLower().Substring(4) + "00000000000000000000";
+            Console.WriteLine($"valueHex:\n{valueHex}");
+
+            // Payload
+            //There is a lot Rust-similar types as input for smart-contracts.
+            //https://docs.substrate.io/reference/scale-codec/
+            //They describes in meta.
+            //const payload = {
+            //  One: 'String',
+            //};
+            var payloadHex = "0x000118537472696e67".Substring(2);
+
+            var payloadLen = payloadHex.Length / 2;
+            var payloadCompactLen = Utils.Bytes2HexString(new CompactInteger(payloadLen).Encode()).ToLower().Substring(2);
+            Console.WriteLine($"payloadCompactLen:\n{payloadCompactLen}");
+
+            //gas_limit:
+            var gasResponce = await _substrateClient.InvokeAsync<JObject>("gear_calculateHandleGas",
+                new object[] {
+                    "0x" + addressAliceHex.Substring(2),
+                    "0x" + programId,
+                    "0x" + payloadHex,
+                    value,
+                    true
+                }, CancellationToken.None);
+
+            var minLimit = System.Numerics.BigInteger.Parse((String)gasResponce["min_limit"]);
+            var minLimitHex = Utils.Bytes2HexString(new CompactInteger(minLimit).Encode()).ToLower().Substring(4) + "00000000";
+            Console.WriteLine($"gasLimit:\n{minLimitHex}");
+
+
+
+            // Method
+            // callIndex 0x6803,
+            // programId (destination) 0xa9cf7cc945f0632a22a7028d8a83a2a153318bb3f4d04d1200afc31ee9a05372
+            // payload 0x000118537472696e67
+            // gas_limit 1884116246,
+            // value 10000000000000,
+            //"keep_alive":true
+
+            var keep_alive = "0x00".Substring(2);
+
+            var methodHex = "6803" +
+                programId +
+                payloadCompactLen +
+                payloadHex +
+                minLimitHex +
+                valueHex +
+                keep_alive;
+
+            // Payload for signature:
+            //method
+            //era 0x7500
+            //nonce 0x0c
+            //tip 0x00
+            //specVersion 0xf2030000
+            //transactionVersion 0x01000000
+            //genesisHash 0x1f7d7c86886305a96d76c98d49fb2bb7df4f35d5753498e63431889b0e014609
+            //blockHash 0xe7e76da14575d1c48e14b16ab945906f7c14c9b4c40a00abf61d47cb03f41029
+
+
+            var finalizedHeader = await _substrateClient.Chain.GetHeaderAsync();
+            var lastBlockNumber1 = finalizedHeader.Number.Value;
+            var era = Era.Create(64, finalizedHeader.Number.Value);
+            var eraHex = Utils.Bytes2HexString(era.Encode()).ToLower().Substring(2);
+            Console.WriteLine($"eraHex:\n{eraHex}");
+
+            var nonce = await _substrateClient.System.AccountNextIndexAsync(addressAlice, CancellationToken.None);
+            var nonceHex = Utils.Bytes2HexString(new CompactInteger(nonce).Encode()).ToLower().Substring(2);
+            Console.WriteLine($"nonceHex:\n{nonceHex}");
+
+            var tip = 0;
+            var tipHex = Utils.Bytes2HexString(new CompactInteger(tip).Encode()).ToLower().Substring(2);
+            Console.WriteLine($"tipHex:\n{tipHex}");
+
+
+            var runtimeVersion_1 = await _substrateClient.State.GetRuntimeVersionAsync();
+            var specVersionHex =
+                Utils.Bytes2HexString(BitConverter.GetBytes(runtimeVersion_1.SpecVersion)).ToLower().Substring(2);
+            Console.WriteLine($"specVersionHex:\n{specVersionHex}");
+            var transactionVersionHex =
+                Utils.Bytes2HexString(BitConverter.GetBytes(runtimeVersion_1.TransactionVersion)).ToLower().Substring(2);
+            Console.WriteLine($"transactionVersionHex:\n{transactionVersionHex}");
+
+            var genesis = new BlockNumber();
+            genesis.Create(0);
+            var genesisHash = await _substrateClient.Chain.GetBlockHashAsync(genesis, CancellationToken.None);
+            var genesisHashHex = genesisHash.Value.ToLower().Substring(2);
+            Console.WriteLine($"genesisHashHex:\n{genesisHashHex}");
+
+            var blockHash = await _substrateClient.Chain.GetBlockHashAsync();
+            var blockHashHex = blockHash.Value.ToLower().Substring(2);
+            Console.WriteLine($"blockHashHex:\n{blockHashHex}");
+
+            var payload_hex = "0x" +
+                methodHex +
+                eraHex +
+                nonceHex +
+                tipHex +
+                specVersionHex +
+                transactionVersionHex +
+                genesisHashHex +
+                blockHashHex;
+
+            var payload = Utils.HexToByteArray(payload_hex);
+
+            // Payloads longer than 256 bytes are going to be `blake2_256`-hashed.
+            if (payload.Length > 256)
+                payload = HashExtension.Blake2(payload, 256);
+
+            // sign payload with the Sr25519
+            var simpleSign = Schnorrkel.Sr25519v091.SignSimple(keyPairAlice, payload);
+            var simpleSignHex = "01" + Utils.Bytes2HexString(simpleSign).ToLower().Substring(2);
+            Console.WriteLine($"simpleSignHex:\n{simpleSignHex}");
+
+            // Extrinsic params:
+            //compact length 0x3102
+            //version 84
+            //signer 0x00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
+            //signature 0x012a3cfc6276f33837a68145f398663f419ef90f27b77ccb67756138db2545d560da748231a05d55f9a39efde9507101ef58657314ad0bb81c7b06a49805fe9380
+            //era 0xa500
+            //nonce 0x24
+            //tip 0x00
+            //method 0x6803a9cf7cc945f0632a22a7028d8a83a2a153318bb3f4d04d1200afc31ee9a0537224000118537472696e6716554d700000000000a0724e18090000000000000000000001
+
+            var paramsHex = "84" +
+                addressAliceHex +
+                simpleSignHex +
+                eraHex + nonceHex + tipHex +
+                methodHex;
+
+            var lengthCompact = Utils.Bytes2HexString(new CompactInteger(paramsHex.Length / 2).Encode()).ToLower().Substring(2);
+
+            paramsHex = "0x" + lengthCompact + paramsHex;
+            Console.WriteLine($"paramsHex:\n{paramsHex.Substring(0, 30)}...");
+            
+            // Subscribtion and listening
+            var taskCompletionSource = new TaskCompletionSource<(bool, Hash)>();
+
+            // Message sending and extrinsicUpdate subscription
+            var subscriptionId =
+                await _substrateClient.InvokeAsync<string>("author_submitAndWatchExtrinsic", new object[] { paramsHex }, CancellationToken.None);
+
+            _substrateClient.Listener.RegisterCallBackHandler(subscriptionId, (string subscriptionId, ExtrinsicStatus extrinsicUpdate) =>
+            {
+                if (extrinsicUpdate.ExtrinsicState == ExtrinsicState.Finalized ||
+                    extrinsicUpdate.ExtrinsicState == ExtrinsicState.Dropped ||
+                    extrinsicUpdate.ExtrinsicState == ExtrinsicState.Invalid)
+                {
+                    taskCompletionSource.SetResult((true, extrinsicUpdate.Hash));
+                }
+
+
+                Console.WriteLine($"extrinsicUpdate:\n{extrinsicUpdate.ExtrinsicState}");
+            });
 
             var finished = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(TimeSpan.FromMinutes(1)));
             Assert.AreEqual(taskCompletionSource.Task, finished, "Test timed out waiting for final callback");
